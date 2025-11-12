@@ -1,0 +1,14 @@
+c 
+c This is the example from the DPLL lecture slides
+c nbvars: {A, B, C, D, E, F, G} => 7
+c nbclauses: 8
+c
+p dpll 7 8
+1 -2 0
+-2 0
+2 3 6 0
+3 -7 6 0
+-3 6 7 0
+-3 -6 7 0
+-4 5 0
+-6 -7 0
