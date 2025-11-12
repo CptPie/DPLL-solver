@@ -49,12 +49,14 @@ type Task struct {
 }
 
 type Clause struct {
-	Vars []Variable
+	Vars       []Variable
+	Unsolvable bool
 }
 
 type Variable struct {
-	ID      int
-	Negated bool
+	ID         int
+	Negated    bool
+	Impossible bool
 }
 
 func NewParser(filepath string) (*Parser, error) {
@@ -90,14 +92,9 @@ func (p *Parser) Parse() (*Task, error) {
 	clauses := []*Clause{}
 	task := &Task{}
 	for _, line := range p.Lines {
-		// Empty line
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" {
-			continue
-		}
+		parts := strings.Fields(line)
 
 		// Comment line
-		parts := strings.Split(trimmedLine, " ")
 		if parts[0] == "c" || parts[0] == "C" {
 			continue
 		}
@@ -105,7 +102,7 @@ func (p *Parser) Parse() (*Task, error) {
 		// Prompt line
 		if parts[0] == "p" || parts[0] == "P" {
 			if len(parts) < 4 {
-				return nil, fmt.Errorf("invalid prompt line, expected 4 or 5 elements, got %d\n\t\t%s", len(parts), trimmedLine)
+				return nil, fmt.Errorf("invalid prompt line, expected 4 or 5 elements, got %d\n\t\t%s", len(parts), line)
 			}
 
 			numVars, err := strconv.Atoi(parts[2])
@@ -126,10 +123,15 @@ func (p *Parser) Parse() (*Task, error) {
 			continue
 		}
 
+		// its some sort of stange line in the uf20-XX.cnf files
+		if parts[0] == "%" {
+			break
+		}
+
 		// Clause line
-		clause, err := p.parseClauseLine(trimmedLine)
+		clause, err := p.parseClauseLine(line)
 		if err != nil {
-			return nil, fmt.Errorf("could not parse clause '%s': %v", trimmedLine, err)
+			return nil, fmt.Errorf("could not parse clause '%s': %v", line, err)
 		}
 
 		clauses = append(clauses, clause)
@@ -142,7 +144,7 @@ func (p *Parser) Parse() (*Task, error) {
 }
 
 func (p *Parser) parseClauseLine(line string) (*Clause, error) {
-	parts := strings.Split(line, " ")
+	parts := strings.Fields(line)
 
 	clauseInts := []int{}
 
@@ -175,6 +177,7 @@ func (p *Parser) parseClauseLine(line string) (*Clause, error) {
 	for _, num := range clauseInts {
 
 		cVar := &Variable{}
+		cVar.Impossible = false
 
 		if num < 0 {
 			cVar.Negated = true
@@ -185,6 +188,7 @@ func (p *Parser) parseClauseLine(line string) (*Clause, error) {
 		}
 
 		clause.Vars = append(clause.Vars, *cVar)
+		clause.Unsolvable = false
 	}
 
 	return clause, nil
@@ -204,4 +208,36 @@ func validateNoNegativePairs(slice []int) bool {
 	}
 
 	return true
+}
+
+func (t *Task) Verify() error {
+	if t.NumClauses != len(t.Clauses) {
+		return fmt.Errorf("nbclauses does not match amount of clauses defined in file, expected %d, got %d", t.NumClauses, len(t.Clauses))
+	}
+
+	if t.NumVars <= 0 {
+		return fmt.Errorf("nbvars cannot be <= 0")
+	}
+
+	checkMap := make(map[int]bool)
+
+	for i := 1; i < t.NumVars; i++ {
+		checkMap[i] = false
+	}
+
+	for _, clause := range t.Clauses {
+		for _, cVar := range clause.Vars {
+			if !checkMap[cVar.ID] {
+				checkMap[cVar.ID] = true
+			}
+		}
+	}
+
+	for num, entry := range checkMap {
+		if !entry {
+			return fmt.Errorf("not all nbvars (1...<nbvar>) are used in the clauses, (missing <%d>)", num)
+		}
+	}
+
+	return nil
 }

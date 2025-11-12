@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/CptPie/DLPP-solver/parser"
+	"github.com/CptPie/DLPP-solver/solver"
 	"github.com/alexflint/go-arg"
 )
 
@@ -28,11 +28,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	jsonData, err := json.MarshalIndent(task, "", "  ")
+	err = task.Verify()
 	if err != nil {
-		fmt.Println("Error: ", err)
+		fmt.Printf("Parsing result is not valid: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println(string(jsonData))
+
+	solver := solver.NewSolver(task)
+
+	solver.Solve()
 
 }
