@@ -1,6 +1,8 @@
 package solver
 
 import (
+	"fmt"
+
 	"github.com/CptPie/DLPP-solver/parser"
 	"github.com/CptPie/DLPP-solver/utils"
 )
@@ -40,10 +42,11 @@ func NewSolver(task *parser.Task) *Solver {
 func (s *Solver) Solve() {
 	step := 0
 	timeout := 0
+	fmt.Printf("Starting to solve %d clauses.\n", len(s.WorkCopy))
 	// while true
 	for {
 		if timeout >= 10000 {
-			utils.JSONPrint(s)
+			utils.JSONPrint(s.Solution.Vars)
 			break
 		}
 
@@ -58,13 +61,45 @@ func (s *Solver) Solve() {
 		}
 
 		if s.unitPropagation() {
+			fmt.Printf("Found a unit propagation, remaining clauses to solve: %d\n", len(s.WorkCopy))
 			step++
+			continue
+		}
+
+		if s.pureLiteral() {
+			fmt.Printf("Found a pure literal, remaining clauses to solve: %d\n", len(s.WorkCopy))
+			step++
+			continue
 		}
 
 		timeout++
 	}
 }
 
+func (s *Solver) isSolved() bool {
+	if len(s.WorkCopy) == 0 {
+		return true
+	}
+
+	return false
+}
+
+func (s *Solver) isUnsolvable() bool {
+	if len(s.WorkCopy) == 0 {
+		return false
+	}
+
+	for _, clause := range s.WorkCopy {
+		for _, cVar := range clause.Vars {
+			if !cVar.Impossible {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// This function implements unitPropagation, returns a boolean value representing work being done (an successful reduction)
 func (s *Solver) unitPropagation() bool {
 	clauses := s.WorkCopy
 
@@ -106,25 +141,45 @@ func (s *Solver) unitPropagation() bool {
 	return didWork
 }
 
-func (s *Solver) isSolved() bool {
-	if len(s.WorkCopy) == 0 {
-		return true
-	}
+func (s *Solver) pureLiteral() bool {
+	didWork := false
 
-	return false
-}
+	clauses := s.WorkCopy
 
-func (s *Solver) isUnsolvable() bool {
-	if len(s.WorkCopy) == 0 {
-		return false
-	}
+	// prepare a map to count each variable label (IDs) appearances
+	variableUsageMap := make(map[int]int)
 
-	for _, clause := range s.WorkCopy {
+	// count appearances
+	for _, clause := range clauses {
 		for _, cVar := range clause.Vars {
-			if !cVar.Impossible {
-				return false
+			_, ok := variableUsageMap[cVar.ID]
+			if ok {
+				variableUsageMap[cVar.ID]++
+			} else {
+				variableUsageMap[cVar.ID] = 1
 			}
 		}
 	}
-	return true
+
+	// check appearances for variables only used once
+	for cVarID, count := range variableUsageMap {
+		if count == 1 {
+			// variable "cVarID" is only used once, lets find it in the clauses (should only ever get one matching clause)
+			for clauseID, clause := range clauses {
+				for _, cVar := range clause.Vars {
+					if cVar.ID == cVarID {
+						// if cVar is impossible to solve (due to a previous step) ignore it for pure Literal reduction
+						if !cVar.Impossible {
+							// found the variable, add it to the solution, remove the clause from the workset
+							s.Solution.Vars = append(s.Solution.Vars, cVar)
+							clauses = append(clauses[:clauseID], clauses[clauseID+1:]...)
+							didWork = true
+						}
+					}
+				}
+			}
+		}
+	}
+	s.WorkCopy = clauses
+	return didWork
 }
