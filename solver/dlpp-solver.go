@@ -51,11 +51,13 @@ func (s *Solver) Solve() {
 		}
 
 		if s.isSolved() {
+			fmt.Printf("Found solution: %s\n", utils.JSONString(s.Solution))
 			s.Result = SATISFIABLE
 			break
 		}
 
 		if s.isUnsolvable() {
+			fmt.Printf("Problem is unsolvable.\nSolution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
 			s.Result = UNSATISFIABLE
 			break
 		}

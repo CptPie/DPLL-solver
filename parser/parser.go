@@ -49,8 +49,7 @@ type Task struct {
 }
 
 type Clause struct {
-	Vars       []Variable
-	Unsolvable bool
+	Vars []Variable
 }
 
 type Variable struct {
@@ -188,7 +187,6 @@ func (p *Parser) parseClauseLine(line string) (*Clause, error) {
 		}
 
 		clause.Vars = append(clause.Vars, *cVar)
-		clause.Unsolvable = false
 	}
 
 	return clause, nil
