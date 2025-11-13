@@ -52,10 +52,31 @@ type Clause struct {
 	Vars []Variable
 }
 
+func (c *Clause) String() string {
+	res := "{ "
+	for _, variable := range c.Vars {
+		res += variable.String()
+		res += " "
+	}
+	return res + "}"
+}
+
 type Variable struct {
 	ID         int
 	Negated    bool
 	Impossible bool
+}
+
+func (v *Variable) String() string {
+	res := ""
+	if v.Negated {
+		res += "-"
+	}
+	res += fmt.Sprintf("%v", v.ID)
+	if v.Impossible {
+		res += "!"
+	}
+	return res
 }
 
 func NewParser(filepath string) (*Parser, error) {
