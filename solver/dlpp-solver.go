@@ -52,7 +52,6 @@ func (cs *CheckpointStack) Pop() *Checkpoint {
 }
 
 func NewSolver(task *parser.Task) *Solver {
-
 	sol := &parser.Clause{}
 
 	return &Solver{
@@ -117,11 +116,7 @@ func (s *Solver) Solve() {
 }
 
 func (s *Solver) isSolved() bool {
-	if len(s.WorkCopy) == 0 {
-		return true
-	}
-
-	return false
+	return len(s.WorkCopy) == 0
 }
 
 func (s *Solver) isUnsolvable() bool {
@@ -253,8 +248,6 @@ func (s *Solver) split() bool {
 			}
 		}
 	}
-
-	fmt.Println(variableUsageMap)
 
 	// find the variable with largest count (by ID)
 	maxVarID := 0

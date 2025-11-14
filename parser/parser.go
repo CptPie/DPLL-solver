@@ -244,12 +244,21 @@ func (t *Task) Verify() error {
 		checkMap[i] = false
 	}
 
+	highestVar := 0
+
 	for _, clause := range t.Clauses {
 		for _, cVar := range clause.Vars {
+			if cVar.ID > highestVar {
+				highestVar = cVar.ID
+			}
 			if !checkMap[cVar.ID] {
 				checkMap[cVar.ID] = true
 			}
 		}
+	}
+
+	if highestVar > t.NumVars {
+		return fmt.Errorf("clauses use a higher variable than defined through nbvar %d, found: %d", t.NumVars, highestVar)
 	}
 
 	for num, entry := range checkMap {
