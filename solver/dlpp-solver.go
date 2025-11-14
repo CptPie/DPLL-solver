@@ -47,8 +47,10 @@ func (cs *CheckpointStack) Pop() *Checkpoint {
 	if cs.count == 0 {
 		return nil
 	}
-	cs.count--
-	return cs.checkpoints[cs.count]
+	cs.count = cs.count - 1
+	res := cs.checkpoints[cs.count]
+	cs.checkpoints = cs.checkpoints[:cs.count]
+	return res
 }
 
 func NewSolver(task *parser.Task) *Solver {
@@ -66,10 +68,15 @@ func NewSolver(task *parser.Task) *Solver {
 func (s *Solver) markCheckpoint() *Checkpoint {
 	wc := make([]*parser.Clause, len(s.WorkCopy))
 	copy(wc, s.WorkCopy)
-	sol := *s.Solution
+
+	solutionCopy := parser.Clause{}
+	for _, cvar := range s.Solution.Vars {
+		solutionCopy.Vars = append(solutionCopy.Vars, cvar)
+	}
+
 	return &Checkpoint{
 		WorkCopy: wc,
-		Solution: &sol,
+		Solution: &solutionCopy,
 	}
 }
 
@@ -108,7 +115,15 @@ func (s *Solver) Solve() {
 			continue
 		}
 
+		if s.backtrack() {
+			fmt.Printf("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
+			fmt.Println(s.WorkCopy)
+			continue
+		}
+
 		fmt.Println("No resolution step found")
+		// TODO backtrack here i guess?
+		// otherwise UNSATISFIABLE
 		fmt.Println(s.WorkCopy)
 
 		break
@@ -121,6 +136,10 @@ func (s *Solver) isSolved() bool {
 
 func (s *Solver) isUnsolvable() bool {
 	if len(s.WorkCopy) == 0 {
+		return false
+	}
+
+	if s.CheckpointStack.count != 0 {
 		return false
 	}
 
@@ -279,21 +298,71 @@ func (s *Solver) split() bool {
 
 				// remember this for the checkpoint, pick the opposite state in the checkpoint
 				checkpoint := s.markCheckpoint()
+
 				checkpointVar := &parser.Variable{
 					ID:         cVar.ID,
-					Negated:    !cVar.Negated,
 					Impossible: cVar.Impossible,
 				}
+				if cVar.Negated {
+					checkpointVar.Negated = false
+				} else {
+					checkpointVar.Negated = true
+				}
+
+				fmt.Printf("CheckpointVar: %s\n", checkpointVar.String())
+
 				checkpoint.Solution.Vars = append(checkpoint.Solution.Vars, *checkpointVar)
 				s.CheckpointStack.Push(checkpoint)
 
 				// add it to the current solution
 				s.Solution.Vars = append(s.Solution.Vars, cVar)
+				fmt.Printf("checkpoint Solution %s\n", checkpoint.Solution)
+				fmt.Printf("solver solution: %s\n", s.Solution)
 				break
 			}
 		}
 	}
 
+	didWork = s.reduceWorkingSet(pickedVariable)
+
+	return didWork
+}
+
+func (s *Solver) backtrack() bool {
+	if s.CheckpointStack.count == 0 {
+		fmt.Println("No more checkpoints to backtrack to")
+		return false
+	}
+
+	fmt.Printf("CPS Pre backtrack: %v\n", s.CheckpointStack)
+	fmt.Printf("WorkCopy: %s\n", s.WorkCopy)
+	fmt.Printf("Solution: %s\n", s.Solution)
+
+	stack := *s.CheckpointStack
+	backtrackPoint := *stack.Pop()
+
+	fmt.Println(backtrackPoint)
+
+	s.CheckpointStack = &stack
+
+	sol := *backtrackPoint.Solution
+
+	s.WorkCopy = backtrackPoint.WorkCopy
+	s.Solution = &sol
+
+	fmt.Printf("CPS Post backtrack: %v\n", s.CheckpointStack)
+	fmt.Printf("WorkCopy: %s\n", s.WorkCopy)
+	fmt.Printf("Solution: %s\n", s.Solution)
+
+	// reduce with the last variabele (the variable that caused the split in the first place)
+	s.reduceWorkingSet(&sol.Vars[len(sol.Vars)-1])
+
+	return true
+}
+
+func (s *Solver) reduceWorkingSet(rVar *parser.Variable) bool {
+	clauses := s.WorkCopy
+	didWork := false
 preLoop:
 	// Remove clauses with this variable state (they are solved), mark opposite state as impossible
 	for clauseID, clause := range clauses {
@@ -301,10 +370,10 @@ preLoop:
 			if cVar.Impossible {
 				continue
 			}
-			if cVar.ID == pickedVariable.ID {
-				if cVar.Negated == pickedVariable.Negated {
+			if cVar.ID == rVar.ID {
+				if cVar.Negated == rVar.Negated {
 					// clause contains variable with the same negation state, remove the entire clause as it is solved
-					fmt.Printf("Clause %s (ID: %d) contains variable %s, removing...\n", clause, clauseID, pickedVariable)
+					fmt.Printf("Clause %s (ID: %d) contains variable %s, removing...\n", clause, clauseID, rVar)
 					clauses = append(clauses[:clauseID], clauses[clauseID+1:]...)
 					goto preLoop
 				} else {
@@ -316,8 +385,6 @@ preLoop:
 			}
 		}
 	}
-
 	s.WorkCopy = clauses
-
 	return didWork
 }
