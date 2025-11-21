@@ -56,9 +56,20 @@ func (cs *CheckpointStack) Pop() *Checkpoint {
 func NewSolver(task *parser.Task) *Solver {
 	sol := &parser.Clause{}
 
+	// Create a deep copy of the task's clauses for WorkCopy
+	// to avoid modifying the original task data
+	workCopy := make([]*parser.Clause, len(task.Clauses))
+	for i, clause := range task.Clauses {
+		clauseCopy := &parser.Clause{
+			Vars: make([]parser.Variable, len(clause.Vars)),
+		}
+		copy(clauseCopy.Vars, clause.Vars)
+		workCopy[i] = clauseCopy
+	}
+
 	return &Solver{
 		Problem:         task,
-		WorkCopy:        task.Clauses,
+		WorkCopy:        workCopy,
 		Result:          UNKNOWN,
 		Solution:        sol,
 		CheckpointStack: &CheckpointStack{},
@@ -66,8 +77,17 @@ func NewSolver(task *parser.Task) *Solver {
 }
 
 func (s *Solver) markCheckpoint() *Checkpoint {
+	// Deep copy the WorkCopy - must copy the clauses themselves, not just the slice of pointers
 	wc := make([]*parser.Clause, len(s.WorkCopy))
-	copy(wc, s.WorkCopy)
+	for i, clause := range s.WorkCopy {
+		// Create a new clause
+		clauseCopy := &parser.Clause{
+			Vars: make([]parser.Variable, len(clause.Vars)),
+		}
+		// Deep copy all variables in the clause
+		copy(clauseCopy.Vars, clause.Vars)
+		wc[i] = clauseCopy
+	}
 
 	solutionCopy := parser.Clause{}
 	for _, cvar := range s.Solution.Vars {
@@ -92,6 +112,20 @@ func (s *Solver) Solve() {
 		}
 
 		if s.isUnsolvable() {
+			fmt.Printf("Problem is unsolvable.\nSolution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
+			s.Result = UNSATISFIABLE
+			break
+		}
+
+		// Check for contradictions: if any clause has all variables marked as impossible, we need to backtrack
+		if s.hasContradiction() {
+			fmt.Printf("Found contradiction, backtracking...\n")
+			if s.backtrack() {
+				fmt.Printf("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
+				fmt.Println(s.WorkCopy)
+				continue
+			}
+			// No checkpoints left, problem is unsolvable
 			fmt.Printf("Problem is unsolvable.\nSolution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
 			s.Result = UNSATISFIABLE
 			break
@@ -132,6 +166,24 @@ func (s *Solver) Solve() {
 
 func (s *Solver) isSolved() bool {
 	return len(s.WorkCopy) == 0
+}
+
+// hasContradiction checks if any clause has all its variables marked as impossible
+// This indicates we've reached a dead end and need to backtrack
+func (s *Solver) hasContradiction() bool {
+	for _, clause := range s.WorkCopy {
+		allImpossible := true
+		for _, cVar := range clause.Vars {
+			if !cVar.Impossible {
+				allImpossible = false
+				break
+			}
+		}
+		if allImpossible && len(clause.Vars) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Solver) isUnsolvable() bool {
@@ -200,40 +252,67 @@ func (s *Solver) pureLiteral() bool {
 
 	clauses := s.WorkCopy
 
-	// prepare a map to count each variable label (IDs) appearances
-	variableUsageMap := make(map[int]int)
+	// Track which variables appear in which polarities
+	// Key: variable ID, Value: map[negated]bool (true if that polarity has been seen)
+	variablePolarity := make(map[int]map[bool]bool)
 
-	// count appearances
+	// Scan all clauses to find polarities
 	for _, clause := range clauses {
 		for _, cVar := range clause.Vars {
-			_, ok := variableUsageMap[cVar.ID]
-			if ok {
-				variableUsageMap[cVar.ID]++
-			} else {
-				variableUsageMap[cVar.ID] = 1
+			if cVar.Impossible {
+				continue // Skip impossible variables
 			}
+			if _, ok := variablePolarity[cVar.ID]; !ok {
+				variablePolarity[cVar.ID] = make(map[bool]bool)
+			}
+			variablePolarity[cVar.ID][cVar.Negated] = true
 		}
 	}
 
-	// check appearances for variables only used once
-	for cVarID, count := range variableUsageMap {
-		if count == 1 {
-			// variable "cVarID" is only used once, lets find it in the clauses (should only ever get one matching clause)
-			for clauseID, clause := range clauses {
+	// Find pure literals (variables that appear in only one polarity)
+	pureLiterals := make(map[int]parser.Variable)
+	for varID, polarities := range variablePolarity {
+		if len(polarities) == 1 {
+			// This variable appears in only one polarity, it's a pure literal
+			// Find the actual variable to add to solution
+			for _, clause := range clauses {
 				for _, cVar := range clause.Vars {
-					if cVar.ID == cVarID {
-						// if cVar is impossible to solve (due to a previous step) ignore it for pure Literal reduction
-						if !cVar.Impossible {
-							// found the variable, add it to the solution, remove the clause from the workset
-							s.Solution.Vars = append(s.Solution.Vars, cVar)
-							clauses = append(clauses[:clauseID], clauses[clauseID+1:]...)
-							didWork = true
-						}
+					if cVar.ID == varID && !cVar.Impossible {
+						pureLiterals[varID] = cVar
+						break
 					}
+				}
+				if _, found := pureLiterals[varID]; found {
+					break
 				}
 			}
 		}
 	}
+
+	// Remove clauses containing pure literals and add them to solution
+	if len(pureLiterals) > 0 {
+		for _, pureLit := range pureLiterals {
+			s.Solution.Vars = append(s.Solution.Vars, pureLit)
+
+			// Remove all clauses containing this pure literal
+			newClauses := make([]*parser.Clause, 0)
+			for _, clause := range clauses {
+				containsPureLit := false
+				for _, cVar := range clause.Vars {
+					if cVar.ID == pureLit.ID && cVar.Negated == pureLit.Negated && !cVar.Impossible {
+						containsPureLit = true
+						break
+					}
+				}
+				if !containsPureLit {
+					newClauses = append(newClauses, clause)
+				}
+			}
+			clauses = newClauses
+			didWork = true
+		}
+	}
+
 	s.WorkCopy = clauses
 	return didWork
 }
@@ -347,7 +426,10 @@ func (s *Solver) backtrack() bool {
 
 	sol := *backtrackPoint.Solution
 
-	s.WorkCopy = backtrackPoint.WorkCopy
+	// Create a new slice to avoid aliasing with the checkpoint's WorkCopy
+	restoredWorkCopy := make([]*parser.Clause, len(backtrackPoint.WorkCopy))
+	copy(restoredWorkCopy, backtrackPoint.WorkCopy)
+	s.WorkCopy = restoredWorkCopy
 	s.Solution = &sol
 
 	fmt.Printf("CPS Post backtrack: %v\n", s.CheckpointStack)
