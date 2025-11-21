@@ -139,6 +139,36 @@ Optimum mode exhaustively explores the search space to find the solution with th
 - Memory usage is managed through sequential backtracking when queue is full
 - Best suited for problems where solution quality matters more than speed
 
+### Benchmarks
+
+#### Sequential benchmark:
+```bash
+time for f in examples/uf20-91/*; do ./dpll-solver $f > /dev/null; done
+
+real	0m8,097s
+user	0m5,332s
+sys	  0m3,322s
+```
+
+#### Parallel benchmarks:
+- t=2
+```bash
+time for f in examples/uf20-91/*; do ./dpll-solver -p -t 2 $f > /dev/null; done
+
+real	0m7,905s
+user	0m7,209s
+sys	  0m3,926s
+```
+
+- t=4
+```bash
+time for f in examples/uf20-91/*; do ./dpll-solver -p -t 4 $f > /dev/null; done
+
+real	0m8,070s
+user	0m11,218s
+sys	  0m5,299s
+```
+
 ## Logging Levels
 
 ### `none` (default)
