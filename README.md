@@ -1,6 +1,6 @@
 # DPLL SAT Solver
 
-A high-performance SAT solver implementing the DPLL (Davis-Putnam-Logemann-Loveland) algorithm with support for both sequential and parallel solving modes.
+SAT solver implementing the DPLL (Davis-Putnam-Logemann-Loveland) algorithm with support for both sequential and parallel solving modes written in GoLang.
 
 ## Features
 
