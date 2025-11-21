@@ -163,7 +163,7 @@ Shows detailed debug information including worker activity in parallel mode.
 ### Sequential Solve
 
 ```bash
-$ ./dpll-solver uf20-91/uf20-01.cnf
+$ ./dpll-solver examples/uf20-91/uf20-01.cnf
 Starting to solve 91 clauses.
 Found solution: { 15 -5 -12 -7 19 10 11 17 4 14 2 -13 9 -1 -6 8 3 -16 20 18 }
 Result: SATISFIABLE
@@ -173,7 +173,7 @@ Solution: { 15 -5 -12 -7 19 10 11 17 4 14 2 -13 9 -1 -6 8 3 -16 20 18 }
 ### Parallel Solve
 
 ```bash
-$ ./dpll-solver uf20-91/uf20-01.cnf --parallel --threads 4
+$ ./dpll-solver examples/uf20-91/uf20-01.cnf --parallel --threads 4
 Using 4 worker threads
 Starting parallel solver with 4 workers
 Worker 1: Found solution: { 15 -5 -12 -7 19 10 17 20 14 11 -13 4 9 -6 -1 8 3 -16 2 18 }
@@ -184,7 +184,7 @@ Solution: { 15 -5 -12 -7 19 10 17 20 14 11 -13 4 9 -6 -1 8 3 -16 2 18 }
 ### Optimum Mode
 
 ```bash
-$ ./dpll-solver uf20-91/uf20-01.cnf --parallel --threads 4 --optimum
+$ ./dpll-solver examples/uf20-91/uf20-01.cnf --parallel --threads 4 --optimum
 Using 4 worker threads
 Starting parallel solver with 4 workers
 Found solution with 20 variables: { 15 -5 -12 -7 19 10 11 17 20 14 -13 4 9 -6 -1 8 3 2 -16 18 }
