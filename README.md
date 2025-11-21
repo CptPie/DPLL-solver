@@ -13,13 +13,13 @@ SAT solver implementing the DPLL (Davis-Putnam-Logemann-Loveland) algorithm with
 ## Building
 
 ```bash
-go build -o dpll-solver
+$ go build -o dpll-solver
 ```
 
 ## Usage
 
 ```bash
-./dpll-solver [options] <input-file>
+$ ./dpll-solver [options] <input-file>
 ```
 
 ### Command-Line Options
@@ -38,33 +38,33 @@ go build -o dpll-solver
 
 ```bash
 # Basic sequential solve
-./dpll-solver problem.cnf
+$ ./dpll-solver problem.cnf
 
 # Sequential with detailed logging
-./dpll-solver problem.cnf --log-level steps
+$ ./dpll-solver problem.cnf --log-level steps
 ```
 
 ### Parallel Solving
 
 ```bash
 # Parallel solve with 4 workers
-./dpll-solver problem.cnf --parallel --threads 4
+$ ./dpll-solver problem.cnf --parallel --threads 4
 
 # Parallel solve with default thread count (half of CPU cores)
-./dpll-solver problem.cnf --parallel
+$ ./dpll-solver problem.cnf --parallel
 
 # Parallel solve with depth limit (only parallelize first 3 levels)
-./dpll-solver problem.cnf --parallel --threads 8 --parallel-depth 3
+$ ./dpll-solver problem.cnf --parallel --threads 8 --parallel-depth 3
 ```
 
 ### Optimum Mode
 
 ```bash
 # Find minimal solution (exhaustive search)
-./dpll-solver problem.cnf --parallel --threads 4 --optimum
+$ ./dpll-solver problem.cnf --parallel --threads 4 --optimum
 
 # Find minimal solution with logging
-./dpll-solver problem.cnf --parallel --threads 4 --optimum --log-level steps
+$ ./dpll-solver problem.cnf --parallel --threads 4 --optimum --log-level steps
 ```
 
 **Note:** Optimum mode will print each improved solution as it's found, then report the final optimal solution.
@@ -143,30 +143,30 @@ Optimum mode exhaustively explores the search space to find the solution with th
 
 #### Sequential benchmark:
 ```bash
-time for f in examples/uf20-91/*; do ./dpll-solver $f > /dev/null; done
+$ time for f in examples/uf20-91/*; do ./dpll-solver $f > /dev/null; done
 
-real	0m8,097s
-user	0m5,332s
-sys	  0m3,322s
+real  0m8,097s
+user  0m5,332s
+sys   0m3,322s
 ```
 
 #### Parallel benchmarks:
 - t=2
 ```bash
-time for f in examples/uf20-91/*; do ./dpll-solver -p -t 2 $f > /dev/null; done
+$ time for f in examples/uf20-91/*; do ./dpll-solver -p -t 2 $f > /dev/null; done
 
-real	0m7,905s
-user	0m7,209s
-sys	  0m3,926s
+real  0m7,905s
+user  0m7,209s
+sys   0m3,926s
 ```
 
 - t=4
 ```bash
-time for f in examples/uf20-91/*; do ./dpll-solver -p -t 4 $f > /dev/null; done
+$ time for f in examples/uf20-91/*; do ./dpll-solver -p -t 4 $f > /dev/null; done
 
-real	0m8,070s
-user	0m11,218s
-sys	  0m5,299s
+real  0m8,070s
+user  0m11,218s
+sys   0m5,299s
 ```
 
 ## Logging Levels
