@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/CptPie/DLPP-solver/logger"
 	"github.com/CptPie/DLPP-solver/parser"
 	"github.com/CptPie/DLPP-solver/solver"
 	"github.com/CptPie/DLPP-solver/utils"
@@ -11,12 +12,16 @@ import (
 )
 
 var Args struct {
-	File string `arg:"required,positional" help:"Path to the input file, in DIMACS format"`
+	File     string `arg:"required,positional" help:"Path to the input file, in DIMACS format"`
+	LogLevel string `arg:"--log-level,-l" default:"none" help:"Log level: 'none', 'steps', or 'full' (default: none)"`
 }
 
 func main() {
 	// read cli argument
 	arg.MustParse(&Args)
+
+	// Set log level
+	logger.SetLevel(logger.ParseLevel(Args.LogLevel))
 
 	// create parser object
 	parser, err := parser.NewParser(Args.File)

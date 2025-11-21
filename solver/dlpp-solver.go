@@ -1,8 +1,7 @@
 package solver
 
 import (
-	"fmt"
-
+	"github.com/CptPie/DLPP-solver/logger"
 	"github.com/CptPie/DLPP-solver/parser"
 	"github.com/CptPie/DLPP-solver/utils"
 )
@@ -101,64 +100,66 @@ func (s *Solver) markCheckpoint() *Checkpoint {
 }
 
 func (s *Solver) Solve() {
-	fmt.Printf("Starting to solve %d clauses.\n", len(s.WorkCopy))
-	fmt.Println(s.WorkCopy)
+	logger.Info("Starting to solve %d clauses.\n", len(s.WorkCopy))
+	logger.Detail("%s\n", s.WorkCopy)
 	// while true
 	for {
 		if s.isSolved() {
-			fmt.Printf("Found solution: %s\n", s.Solution.String())
+			logger.Info("Found solution: %s\n", s.Solution.String())
 			s.Result = SATISFIABLE
 			break
 		}
 
 		if s.isUnsolvable() {
-			fmt.Printf("Problem is unsolvable.\nSolution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
+			logger.Info("Problem is unsolvable.\n")
+			logger.Detail("Solution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
 			s.Result = UNSATISFIABLE
 			break
 		}
 
 		// Check for contradictions: if any clause has all variables marked as impossible, we need to backtrack
 		if s.hasContradiction() {
-			fmt.Printf("Found contradiction, backtracking...\n")
+			logger.Step("Found contradiction, backtracking...\n")
 			if s.backtrack() {
-				fmt.Printf("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
-				fmt.Println(s.WorkCopy)
+				logger.Step("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
+				logger.Detail("%s\n", s.WorkCopy)
 				continue
 			}
 			// No checkpoints left, problem is unsolvable
-			fmt.Printf("Problem is unsolvable.\nSolution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
+			logger.Info("Problem is unsolvable.\n")
+			logger.Detail("Solution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
 			s.Result = UNSATISFIABLE
 			break
 		}
 
 		if s.unitPropagation() {
-			fmt.Printf("Found a unit propagation, remaining clauses to solve: %d\n", len(s.WorkCopy))
-			fmt.Println(s.WorkCopy)
+			logger.Step("Found a unit propagation, remaining clauses to solve: %d\n", len(s.WorkCopy))
+			logger.Detail("%s\n", s.WorkCopy)
 			continue
 		}
 
 		if s.pureLiteral() {
-			fmt.Printf("Found a pure literal, remaining clauses to solve: %d\n", len(s.WorkCopy))
-			fmt.Println(s.WorkCopy)
+			logger.Step("Found a pure literal, remaining clauses to solve: %d\n", len(s.WorkCopy))
+			logger.Detail("%s\n", s.WorkCopy)
 			continue
 		}
 
 		if s.split() {
-			fmt.Printf("Found a split, remembering checkpoint, remaining clauses to solve: %d\n", len(s.WorkCopy))
-			fmt.Println(s.WorkCopy)
+			logger.Step("Found a split, remembering checkpoint, remaining clauses to solve: %d\n", len(s.WorkCopy))
+			logger.Detail("%s\n", s.WorkCopy)
 			continue
 		}
 
 		if s.backtrack() {
-			fmt.Printf("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
-			fmt.Println(s.WorkCopy)
+			logger.Step("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
+			logger.Detail("%s\n", s.WorkCopy)
 			continue
 		}
 
-		fmt.Println("No resolution step found")
+		logger.Step("No resolution step found\n")
 		// TODO backtrack here i guess?
 		// otherwise UNSATISFIABLE
-		fmt.Println(s.WorkCopy)
+		logger.Detail("%s\n", s.WorkCopy)
 
 		break
 	}
@@ -373,7 +374,7 @@ func (s *Solver) split() bool {
 				// found it, pick it
 				pickedVariable = &cVar
 
-				fmt.Printf("Found a split candidate: %s\n", cVar.String())
+				logger.Detail("Found a split candidate: %s\n", cVar.String())
 
 				// remember this for the checkpoint, pick the opposite state in the checkpoint
 				checkpoint := s.markCheckpoint()
@@ -388,15 +389,15 @@ func (s *Solver) split() bool {
 					checkpointVar.Negated = true
 				}
 
-				fmt.Printf("CheckpointVar: %s\n", checkpointVar.String())
+				logger.Detail("CheckpointVar: %s\n", checkpointVar.String())
 
 				checkpoint.Solution.Vars = append(checkpoint.Solution.Vars, *checkpointVar)
 				s.CheckpointStack.Push(checkpoint)
 
 				// add it to the current solution
 				s.Solution.Vars = append(s.Solution.Vars, cVar)
-				fmt.Printf("checkpoint Solution %s\n", checkpoint.Solution)
-				fmt.Printf("solver solution: %s\n", s.Solution)
+				logger.Detail("checkpoint Solution %s\n", checkpoint.Solution)
+				logger.Detail("solver solution: %s\n", s.Solution)
 				break
 			}
 		}
@@ -409,18 +410,18 @@ func (s *Solver) split() bool {
 
 func (s *Solver) backtrack() bool {
 	if s.CheckpointStack.count == 0 {
-		fmt.Println("No more checkpoints to backtrack to")
+		logger.Detail("No more checkpoints to backtrack to\n")
 		return false
 	}
 
-	fmt.Printf("CPS Pre backtrack: %v\n", s.CheckpointStack)
-	fmt.Printf("WorkCopy: %s\n", s.WorkCopy)
-	fmt.Printf("Solution: %s\n", s.Solution)
+	logger.Detail("CPS Pre backtrack: %v\n", s.CheckpointStack)
+	logger.Detail("WorkCopy: %s\n", s.WorkCopy)
+	logger.Detail("Solution: %s\n", s.Solution)
 
 	stack := *s.CheckpointStack
 	backtrackPoint := *stack.Pop()
 
-	fmt.Println(backtrackPoint)
+	logger.Detail("%v\n", backtrackPoint)
 
 	s.CheckpointStack = &stack
 
@@ -432,9 +433,9 @@ func (s *Solver) backtrack() bool {
 	s.WorkCopy = restoredWorkCopy
 	s.Solution = &sol
 
-	fmt.Printf("CPS Post backtrack: %v\n", s.CheckpointStack)
-	fmt.Printf("WorkCopy: %s\n", s.WorkCopy)
-	fmt.Printf("Solution: %s\n", s.Solution)
+	logger.Detail("CPS Post backtrack: %v\n", s.CheckpointStack)
+	logger.Detail("WorkCopy: %s\n", s.WorkCopy)
+	logger.Detail("Solution: %s\n", s.Solution)
 
 	// reduce with the last variabele (the variable that caused the split in the first place)
 	s.reduceWorkingSet(&sol.Vars[len(sol.Vars)-1])
@@ -455,7 +456,7 @@ preLoop:
 			if cVar.ID == rVar.ID {
 				if cVar.Negated == rVar.Negated {
 					// clause contains variable with the same negation state, remove the entire clause as it is solved
-					fmt.Printf("Clause %s (ID: %d) contains variable %s, removing...\n", clause, clauseID, rVar)
+					logger.Detail("Clause %s (ID: %d) contains variable %s, removing...\n", clause, clauseID, rVar)
 					clauses = append(clauses[:clauseID], clauses[clauseID+1:]...)
 					goto preLoop
 				} else {
