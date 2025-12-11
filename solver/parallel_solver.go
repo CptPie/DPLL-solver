@@ -97,6 +97,7 @@ type ParallelSolver struct {
 	bestSolution     *parser.Clause
 	bestSolutionSize int
 	busyWorkers      int
+	lastWorkItem     *WorkItem // Last examined work item (useful for UNSAT debugging)
 	mu               sync.Mutex
 
 	maxQueueSize int // Maximum work items in queue to prevent memory explosion
@@ -176,6 +177,18 @@ func (ps *ParallelSolver) GetBusyWorkers() int {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	return ps.busyWorkers
+}
+
+func (ps *ParallelSolver) SetLastWorkItem(item *WorkItem) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	ps.lastWorkItem = item
+}
+
+func (ps *ParallelSolver) GetLastWorkItem() *WorkItem {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+	return ps.lastWorkItem
 }
 
 // Solve runs the parallel SAT solver
@@ -294,6 +307,9 @@ func (ps *ParallelSolver) worker(id int) {
 
 // processWorkItem solves a single work item
 func (ps *ParallelSolver) processWorkItem(item *WorkItem, workerID int) {
+	// Store this as the last examined work item
+	ps.SetLastWorkItem(item)
+
 	// Create a solver for this work item
 	s := &Solver{
 		Problem:         ps.Problem,

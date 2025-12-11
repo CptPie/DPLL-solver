@@ -105,14 +105,14 @@ func (s *Solver) Solve() {
 	// while true
 	for {
 		if s.isSolved() {
-			logger.Info("Found solution: %s\n", s.Solution.String())
+			//logger.Info("Found solution: %s\n", s.Solution.String())
 			s.Result = SATISFIABLE
 			break
 		}
 
 		if s.isUnsolvable() {
-			logger.Info("Problem is unsolvable.\n")
-			logger.Detail("Solution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
+			//logger.Info("Problem is unsolvable.\n")
+			//logger.Detail("Solution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
 			s.Result = UNSATISFIABLE
 			break
 		}
