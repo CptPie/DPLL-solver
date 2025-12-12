@@ -85,11 +85,13 @@ func main() {
 			fmt.Printf("%d/%d done\n\n", i, len(files))
 		}
 		endTime := time.Now()
-		fmt.Printf("Solving of %d files took %v\n", len(files), endTime.Sub(startTime))
+		dur := endTime.Sub(startTime)
+		avg := dur / time.Duration(len(files))
+
+		fmt.Printf("Solving of %d files took %v; Average: %v\n", len(files), dur, avg)
 	} else {
 		analyze(Args.File)
 	}
-
 }
 
 func analyze(fileName string) {
