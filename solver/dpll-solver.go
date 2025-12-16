@@ -102,6 +102,14 @@ func (s *Solver) markCheckpoint() *Checkpoint {
 func (s *Solver) Solve() {
 	logger.Info("Starting to solve %d clauses.\n", len(s.WorkCopy))
 	logger.Detail("%s\n", s.WorkCopy)
+
+	// Counters for tracking which steps are executed
+	unitPropCount := 0
+	pureLiteralCount := 0
+	splitCount := 0
+	contradictionBacktrackCount := 0
+	fallbackBacktrackCount := 0
+
 	// while true
 	for {
 		if s.isSolved() {
@@ -121,6 +129,7 @@ func (s *Solver) Solve() {
 		if s.hasContradiction() {
 			logger.Step("Found contradiction, backtracking...\n")
 			if s.backtrack() {
+				contradictionBacktrackCount++
 				logger.Step("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
 				logger.Detail("%s\n", s.WorkCopy)
 				continue
@@ -133,24 +142,28 @@ func (s *Solver) Solve() {
 		}
 
 		if s.unitPropagation() {
+			unitPropCount++
 			logger.Step("Found a unit propagation, remaining clauses to solve: %d\n", len(s.WorkCopy))
 			logger.Detail("%s\n", s.WorkCopy)
 			continue
 		}
 
 		if s.pureLiteral() {
+			pureLiteralCount++
 			logger.Step("Found a pure literal, remaining clauses to solve: %d\n", len(s.WorkCopy))
 			logger.Detail("%s\n", s.WorkCopy)
 			continue
 		}
 
 		if s.split() {
+			splitCount++
 			logger.Step("Found a split, remembering checkpoint, remaining clauses to solve: %d\n", len(s.WorkCopy))
 			logger.Detail("%s\n", s.WorkCopy)
 			continue
 		}
 
 		if s.backtrack() {
+			fallbackBacktrackCount++
 			logger.Step("Backtracking to previous checkpoint, remaining clauses: %d\n", len(s.WorkCopy))
 			logger.Detail("%s\n", s.WorkCopy)
 			continue
@@ -163,6 +176,15 @@ func (s *Solver) Solve() {
 
 		break
 	}
+
+	// Print step execution summary
+	logger.Info("=== DPLL Step Execution Summary ===\n")
+	logger.Info("Unit Propagation:        %d times\n", unitPropCount)
+	logger.Info("Pure Literal:            %d times\n", pureLiteralCount)
+	logger.Info("Split:                   %d times\n", splitCount)
+	logger.Info("Contradiction Backtrack: %d times\n", contradictionBacktrackCount)
+	logger.Info("Fallback Backtrack:      %d times\n", fallbackBacktrackCount)
+	logger.Info("===================================\n")
 }
 
 func (s *Solver) isSolved() bool {
@@ -210,18 +232,23 @@ func (s *Solver) isUnsolvable() bool {
 func (s *Solver) unitPropagation() bool {
 	clauses := s.WorkCopy
 
-	didWork := false
-
 	for clauseID, clause := range clauses {
-		if len(clause.Vars) == 1 {
-			unit := clause.Vars[0]
+		// Count non-impossible variables to find unit clauses
+		nonImpossibleCount := 0
+		var unit parser.Variable
+		for _, v := range clause.Vars {
+			if !v.Impossible {
+				nonImpossibleCount++
+				unit = v
+			}
+		}
+
+		if nonImpossibleCount == 1 {
 			// We found a single variable clause -> Add it to the solution.
 			s.Solution.Vars = append(s.Solution.Vars, unit)
 
 			// Remove it from the working set
 			clauses = append(clauses[:clauseID], clauses[clauseID+1:]...)
-
-			didWork = true
 
 		preLoop:
 			// Now we need to find other clauses, containing this variable in this state and remove them from the working set
@@ -242,10 +269,14 @@ func (s *Solver) unitPropagation() bool {
 					}
 				}
 			}
+
+			// Update WorkCopy and return true - we found and processed a unit clause
+			// Return early to avoid index issues, function will be called again if needed
+			s.WorkCopy = clauses
+			return true
 		}
 	}
-	s.WorkCopy = clauses
-	return didWork
+	return false
 }
 
 func (s *Solver) pureLiteral() bool {
