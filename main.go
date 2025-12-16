@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CptPie/DLPP-solver/logger"
-	dimacsParser "github.com/CptPie/DLPP-solver/parser"
-	"github.com/CptPie/DLPP-solver/solver"
-	"github.com/CptPie/DLPP-solver/utils"
+	"github.com/CptPie/DPLL-solver/logger"
+	dimacsParser "github.com/CptPie/DPLL-solver/parser"
+	"github.com/CptPie/DPLL-solver/solver"
+	"github.com/CptPie/DPLL-solver/utils"
 	"github.com/alexflint/go-arg"
 )
 

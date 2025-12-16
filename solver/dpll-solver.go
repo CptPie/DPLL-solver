@@ -1,9 +1,9 @@
 package solver
 
 import (
-	"github.com/CptPie/DLPP-solver/logger"
-	"github.com/CptPie/DLPP-solver/parser"
-	"github.com/CptPie/DLPP-solver/utils"
+	"github.com/CptPie/DPLL-solver/logger"
+	"github.com/CptPie/DPLL-solver/parser"
+	"github.com/CptPie/DPLL-solver/utils"
 )
 
 type Result int

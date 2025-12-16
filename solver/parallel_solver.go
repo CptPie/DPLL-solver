@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/CptPie/DLPP-solver/logger"
-	"github.com/CptPie/DLPP-solver/parser"
+	"github.com/CptPie/DPLL-solver/logger"
+	"github.com/CptPie/DPLL-solver/parser"
 )
 
 // WorkItem represents a state in the search tree that needs to be explored
@@ -113,7 +113,7 @@ func NewParallelSolver(task *parser.Task, numWorkers int, parallelDepth int, opt
 		resultChan:       make(chan Result, 1),
 		solutionChan:     make(chan *parser.Clause, 1),
 		doneChan:         make(chan struct{}),
-		maxQueueSize:     numWorkers * 4, // Limit queue to prevent exponential memory growth
+		maxQueueSize:     numWorkers * 4,     // Limit queue to prevent exponential memory growth
 		bestSolutionSize: int(^uint(0) >> 1), // Max int value
 	}
 }

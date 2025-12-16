@@ -1,4 +1,4 @@
-module github.com/CptPie/DLPP-solver
+module github.com/CptPie/DPLL-solver
 
 go 1.25.4
 
