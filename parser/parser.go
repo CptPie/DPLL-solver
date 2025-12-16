@@ -1,10 +1,8 @@
 package parser
 
 import (
-	"bufio"
 	"fmt"
 	"math"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -78,30 +76,16 @@ func (v *Variable) String() string {
 	}
 	return res
 }
-
-func NewParser(filepath string) (*Parser, error) {
-	if filepath == "" {
-		return nil, fmt.Errorf("could not create parser, no file given")
+func (v *Variable) CleanString() string {
+	res := ""
+	if v.Negated {
+		res += "-"
 	}
-	file, err := os.Open(filepath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
-	}
-	defer file.Close()
+	res += fmt.Sprintf("%v", v.ID)
 
-	var lines []string
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		if scanner.Err() != nil {
-			return nil, fmt.Errorf("failed to read file: %v", scanner.Err())
-		}
-		line := scanner.Text()
-		if line != "" {
-			lines = append(lines, line)
-		}
-	}
-
+	return res
+}
+func NewParser(filepath string, lines []string) (*Parser, error) {
 	return &Parser{
 		FilePath: filepath,
 		Lines:    lines,
