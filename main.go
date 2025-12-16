@@ -234,6 +234,17 @@ func analyze(fileName string, lines []string) {
 	} else if result == solver.UNSATISFIABLE {
 		logger.Info(" Last examined solution: %s\nOpen clauses to solve: %s\n", solution, workCopy)
 		logger.Info("s %s\n", solver.UNSATISFIABLE)
+
+		builder := new(strings.Builder)
+		builder.WriteString("v ")
+		for _, elem := range solution.Vars {
+			builder.WriteString(elem.CleanString())
+			builder.WriteString(" ")
+		}
+
+		builder.WriteString("0\n")
+		logger.Info(builder.String())
+
 	}
 	logger.Info("Time elapsed: %v\n", endTime.Sub(startTime))
 
