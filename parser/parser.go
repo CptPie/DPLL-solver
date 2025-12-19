@@ -76,6 +76,7 @@ func (v *Variable) String() string {
 	}
 	return res
 }
+
 func (v *Variable) CleanString() string {
 	res := ""
 	if v.Negated {
@@ -85,6 +86,7 @@ func (v *Variable) CleanString() string {
 
 	return res
 }
+
 func NewParser(filepath string, lines []string) (*Parser, error) {
 	return &Parser{
 		FilePath: filepath,
@@ -218,7 +220,7 @@ func (t *Task) Verify() error {
 		return fmt.Errorf("nbclauses does not match amount of clauses defined in file, expected %d, got %d", t.NumClauses, len(t.Clauses))
 	}
 
-	if t.NumVars <= 0 {
+	if t.NumVars < 0 {
 		return fmt.Errorf("nbvars cannot be <= 0")
 	}
 

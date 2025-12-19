@@ -110,17 +110,26 @@ func (s *Solver) Solve() {
 	contradictionBacktrackCount := 0
 	fallbackBacktrackCount := 0
 
+	if s.Problem.NumVars == 0 {
+		if s.Problem.NumClauses == 0 {
+			s.Result = SATISFIABLE
+			return
+		}
+		s.Result = UNSATISFIABLE
+		return
+	}
+
 	// while true
 	for {
 		if s.isSolved() {
-			//logger.Info("Found solution: %s\n", s.Solution.String())
+			// logger.Info("Found solution: %s\n", s.Solution.String())
 			s.Result = SATISFIABLE
 			break
 		}
 
 		if s.isUnsolvable() {
-			//logger.Info("Problem is unsolvable.\n")
-			//logger.Detail("Solution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
+			// logger.Info("Problem is unsolvable.\n")
+			// logger.Detail("Solution: %s\n Remaining clauses:%s\n", utils.JSONString(s.Solution), utils.JSONString(s.WorkCopy))
 			s.Result = UNSATISFIABLE
 			break
 		}
